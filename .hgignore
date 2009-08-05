@@ -1,0 +1,8 @@
+# use glob syntax
+syntax: glob
+
+*.tmproj
+*.pyc
+settings_local.py
+.DS_Store
+*.log
