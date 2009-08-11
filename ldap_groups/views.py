@@ -39,7 +39,11 @@ def search(canonical_name):
     
     results = l.search_s(base, scope, filter, retrieve_attributes)
     
-    result_objects = [LDAPSearchResult(result) for result in results]
+    #result_objects = [LDAPSearchResult(result) for result in results]
+    result_objects = []
+    for result in results:
+        if result[0]:
+            result_objects.append(LDAPSearchResult(result))
     return result_objects
 
 def ldap_search(request):
