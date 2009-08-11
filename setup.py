@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='django-ldap-groups',
-      version='0.1.0',
+      version='0.1.1',
       author='Peter Herndon',
       author_email='tpherndon@gmail.com',
       url='http://code.google.com/p/django-ldap-groups/',
