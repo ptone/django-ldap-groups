@@ -42,8 +42,8 @@ Python-ldap has a number of dependencies itself, including OpenLDAP client
 libraries, OpenSSL and optionally SASL.
 
 Django: http://djangoproject.com/
-This app is known to work with v1.1, but should also work with 1.0, I don't 
-think I'm doing anything particularly odd.
+This app is known to work with v1.1, but will not work with 1.0.  Specifically, 
+I'm using get_urls methods on the admin.py which don't exist in 1.0.
 
 An LDAP server.  The app has been developed and tested against both Active 
 Directory and Novell eDirectory in live environments.  As per above, the 
@@ -56,7 +56,7 @@ jQuery 1.3.2:  http://jquery.com/
 liveQuery: http://github.com/brandonaaron/livequery/tree/master
 In addition, the admin change_form.html uses and requires both jQuery and the
 liveQuery jQuery plugin.  If you put your Javascripts elsewhere, you will need 
-to edit the script src attribute in the included change_form.html to point to
+to edit the script src attribute in the included admin.py to point to
 your specific location.  My default is "/site_media/js/", edit as needed.
 
 Installation
@@ -91,6 +91,10 @@ LDAPS, which may or may not be a requirement for your shop.
 Add 'ldap_groups' to your project's "INSTALLED_APPS" settings, and run syncdb to
 install the LDAPGroup model.
 
+You must also add the following line to your site's urls.py, though where you
+place the ldap_groups URLs is up to you:
+(r'^<wherever-you-want>/', include('ldap_groups.urls')),
+
 Finally, in order to enable authentication, you need to add your choice of
 'ldap_groups.accounts.backends.ActiveDirectoryGroupMembershipSSLBackend' or 
 'ldap_groups.accounts.backends.eDirectoryGroupMembershipSSLBackend' to a tuple
@@ -98,7 +102,9 @@ of AUTHENTICATION_BACKENDS, as documented at
 http://docs.djangoproject.com/en/dev/topics/auth/#specifying-authentication-backends
 I strongly recommend your final string in AUTHENTICATION_BACKENDS be 
 'django.contrib.auth.backends.ModelBackend', or your admin user will not be able
-to log in to the application.
+to log in to the application.  Once you have created at least one LDAPGroup that
+has make_superuser = True, you could get away with removing that line, but then
+you won't be able to log in at all if your LDAP server fails.
 
 Usage
 =====

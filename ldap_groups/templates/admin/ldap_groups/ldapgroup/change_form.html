@@ -2,7 +2,7 @@
 {% load i18n admin_modify adminmedia %}
 {% block content %}{{ block.super }}
 <div>
-<form action="/ldap_example/ldap_search/" method="post" id="ldap_search_form">
+<form action="{% url ldap_search %}" method="post" id="ldap_search_form">
 <label for="req_cn_input">Search for LDAP CN:</label>
 <input type="text" id="req_cn_input" size="40" name="req_cn">
 <input value="Search LDAP" class="default" name="_search_ldap" id="search_ldap_submit" type="submit">
@@ -20,7 +20,7 @@ $(document).ready(function()  {
     $("#search_ldap_submit").livequery('click', function(event){
         var ldap_search_data = $("#ldap_search_form").serialize();
         //console.log(ldap_search_data);
-        $.post('/ldap_example/ldap_search/', ldap_search_data,
+        $.post('{% url ldap_search %}', ldap_search_data,
             function(data){
                 //console.log(data);
                 arr = $.map(eval(data), function(n, i){
