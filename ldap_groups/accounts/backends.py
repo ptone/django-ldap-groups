@@ -238,3 +238,98 @@ class eDirectoryGroupMembershipSSLBackend(BaseGroupMembershipBackend):
         
         return user
     
+
+class OpenDirectoryBackend(BaseGroupMembershipBackend):
+    def bind_ldap(self, username, password):
+        try:
+            ldap.set_option(ldap.OPT_X_TLS_CACERTFILE,settings.CERT_FILE)
+        except AttributeError:
+            pass
+        l = ldap.initialize(settings.LDAP_URL)
+        l.set_option(ldap.OPT_PROTOCOL_VERSION, 3)
+        l.simple_bind_s(username, password)
+        return l
+
+    def authenticate(self,username=None,password=None):
+        try:
+            if len(password) == 0:
+                return None
+            dn = 'uid=%s,cn=users,%s' % (username,settings.SEARCH_DN)
+            print dn
+            con = ldap.initialize(settings.LDAP_URL)
+            con.set_option(ldap.OPT_X_TLS_DEMAND, True)
+            con.set_option(ldap.OPT_PROTOCOL_VERSION,3)
+            con.set_option(ldap.OPT_DEREF,3)
+            con.simple_bind_s (dn,password)
+            print "bind OK"
+            return self.get_or_create_user(dn, password)
+
+        except ImportError:
+            pass
+        except ldap.INVALID_CREDENTIALS:
+            pass
+
+    def get_or_create_user(self, username, password):
+        stripped_name = ''
+        if username.lower().startswith('uid='):
+            stripped_name = username.split(',')[0][4:].lower()
+            print stripped_name
+        try:
+            user = User.objects.get(username=stripped_name)
+        except User.DoesNotExist:
+            try:
+                l = self.bind_ldap(settings.BIND_USER, settings.BIND_PASSWORD)
+                # search
+                group_result = l.search_ext_s('%s,%s' % ('cn=groups',settings.SEARCH_DN),
+                                        ldap.SCOPE_SUBTREE,
+                                        "(cn=*)",
+                                        ['cn','memberUid'])
+
+
+                result = l.search_ext_s('%s,%s' % ('cn=users',settings.SEARCH_DN),
+                                                    ldap.SCOPE_SUBTREE,
+                                                    "(uid=%s)" % stripped_name,
+                                                    settings.SEARCH_FIELDS)[0][1]
+                l.unbind_s()
+
+                membership = []
+                for group in group_result:
+                    # print group
+                    if group[1].has_key('memberUid') and stripped_name in group[1]['memberUid']:
+                        membership.append("cn=%s,cn=groups,%s" % (group[1]['cn'][0], settings.SEARCH_DN))
+
+                if len(membership) == 0:
+                    membership = None
+                print membership
+
+                # get email
+                if result.has_key('mail'):
+                    mail = result['mail'][0]
+                else:
+                    mail = ''
+                # get surname
+                if result.has_key('sn'):
+                    last_name = result['sn'][0]
+                else:
+                    last_name = None
+
+                # get display name
+                if result.has_key('givenName'):
+                    first_name = result['givenName'][0]
+                else:
+                    first_name = None
+                user = User(username=stripped_name,first_name=first_name,last_name=last_name,email=mail)
+            except Exception, e:
+                return None
+
+            user.is_staff = False
+            user.is_superuser = False
+            # user.set_password('ldap authenticated')
+            user.set_unusable_password()
+            user.save()
+            print "OK"
+            print user
+            self.set_memberships_from_ldap(user, membership)
+
+        return user
+
